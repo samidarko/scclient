@@ -259,7 +259,7 @@ class Semiocoder(object):
 
 
     def editJob(self, object_id, name, extension, encoder, options, description=''):
-        params = urllib.urlencode(dict(action='addjob', id=object_id, name=name, extension=extension, encoder=encoder, options=options, 
+        params = urllib.urlencode(dict(action='editjob', id=object_id, name=name, extension=extension, encoder=encoder, options=options, 
                                        description=description, csrfmiddlewaretoken=self.csrfparser.getCsrfToken()))
         url = self.host_url+self.api_url
         req = urllib2.Request(url, data=params, headers={'Content-Type':'application/x-www-form-urlencoded'})
@@ -269,7 +269,7 @@ class Semiocoder(object):
         
     def editJoblist(self, object_id, name, jobs, description=''):
         
-        data = [('action', 'addjoblist'), ('id', object_id), ('name', name), ('description', name), ('csrfmiddlewaretoken', self.csrfparser.getCsrfToken()),]
+        data = [('action', 'editjoblist'), ('id', object_id), ('name', name), ('description', name), ('csrfmiddlewaretoken', self.csrfparser.getCsrfToken()),]
         for job in jobs:
             data.append(('job', job))
         params = urllib.urlencode(data)
@@ -282,4 +282,25 @@ class Semiocoder(object):
 
 #============ Ensemble des méthodes delete ===========================
 
+    def deleteJob(self, object_id):
+        params = urllib.urlencode({ 'action' : 'deletejob', 'id' : object_id, 'csrfmiddlewaretoken' : self.csrfparser.getCsrfToken() } )
+        url = self.host_url+self.api_url
+        req = urllib2.Request(url, data=params, headers={'Content-Type':'application/x-www-form-urlencoded'})
+        result = urllib2.urlopen(req)
+        return self.computeResult(result)
+    
+    
+    def deleteJoblist(self, object_id):
+        params = urllib.urlencode({ 'action' : 'deletejoblist', 'id' : object_id, 'csrfmiddlewaretoken' : self.csrfparser.getCsrfToken() } )
+        url = self.host_url+self.api_url
+        req = urllib2.Request(url, data=params, headers={'Content-Type':'application/x-www-form-urlencoded'})
+        result = urllib2.urlopen(req)
+        return self.computeResult(result)
+    
+    def deleteTask(self, object_id):
+        params = urllib.urlencode({ 'action' : 'deletetask', 'id' : object_id, 'csrfmiddlewaretoken' : self.csrfparser.getCsrfToken() } )
+        url = self.host_url+self.api_url
+        req = urllib2.Request(url, data=params, headers={'Content-Type':'application/x-www-form-urlencoded'})
+        result = urllib2.urlopen(req)
+        return self.computeResult(result)
 
