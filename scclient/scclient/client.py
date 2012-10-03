@@ -1,4 +1,14 @@
-import poster
+# -*- coding: utf-8 -*-
+"""Ce module est permet de générer un client pour les applications Semiocoder et 
+de les piloter à distance via l'API qui est mise à disposition.
+
+Ce module embarque sa propre librairie "poster", dernière en date et non modifiée
+
+Example usage:
+
+"""
+
+from poster import streaminghttp, encode
 from HTMLParser import HTMLParser
 import urllib, urllib2, cookielib
 from xml.dom.minidom import parseString
@@ -40,7 +50,8 @@ class Semiocoder(object):
         :type object_id: Str
         :param verbose: Active le mode verbose
         :type object_id: bool
-
+        
+        :returns: objet Semiocoder
     """
         self.host_url = host_url
         self.login_url = login_url
@@ -59,10 +70,13 @@ class Semiocoder(object):
             print dom.toxml()
         return dom
     
+    
+#============ Ensemble des méthodes de connexion ===========================
+    
         
     def login(self, username = None, password = None):
         # TODO: ajouter un attribut is connected et tester
-        self.opener = poster.streaminghttp.register_openers()
+        self.opener = streaminghttp.register_openers()
         self.opener.add_handler(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))        
         #urllib2.install_opener(self.opener)
         #opener = poster.streaminghttp.register_openers()
@@ -78,15 +92,15 @@ class Semiocoder(object):
         r = urllib2.urlopen(self.host_url+self.logout_url)
 
         
+#============ Ensemble des méthodes get ===========================
+        
     def getEncoderDetail(self, object_id):
-        """Affichages des détails d'un objet job
+        """Affiche le détail d'un objet Encoder
     
-        :param request: Paramètres de la requête HTTP
-        :type request: HttpRequest
-        :param object_id: Identifiant de l'objet job à afficher
+        :param object_id: Identifiant de l'objet à afficher
         :type object_id: int
         
-        :returns: HttpResponse
+        :returns: xml.dom.minidom.Document
         """
         r = urllib2.urlopen(self.host_url+self.api_url+'?action=getencoderdetail&id='+str(object_id))
         return self.computeResult(r)
@@ -94,89 +108,178 @@ class Semiocoder(object):
 
     
     def getEncoders(self):
+        """Affiche la liste des objets Encoder
+        
+        :returns: xml.dom.minidom.Document
+        """
         r = urllib2.urlopen(self.host_url+self.api_url+'?action=getencoders')
         return self.computeResult(r)
     
     
     def getExtensionDetail(self, object_id):
+        """Affiche le détail d'un objet Extension
+    
+        :param object_id: Identifiant de l'objet à afficher
+        :type object_id: int
+        
+        :returns: xml.dom.minidom.Document
+        """
         r = urllib2.urlopen(self.host_url+self.api_url+'?action=getextensiondetail&id='+str(object_id))
         return self.computeResult(r)
     
     def getExtensions(self):
+        """Affiche la liste des objets Extension
+        
+        :returns: xml.dom.minidom.Document
+        """
         r = urllib2.urlopen(self.host_url+self.api_url+'?action=getextensions')
         return self.computeResult(r)
     
     
     def getJobDetail(self, object_id):
+        """Affiche le détail d'un objet Job
+    
+        :param object_id: Identifiant de l'objet à afficher
+        :type object_id: int
+        
+        :returns: xml.dom.minidom.Document
+        """
         r = urllib2.urlopen(self.host_url+self.api_url+'?action=getjobdetail&id='+str(object_id))
         return self.computeResult(r)
     
     
     def getJobs(self):
+        """Affiche la liste des objets Job
+        
+        :returns: xml.dom.minidom.Document
+        """
         r = urllib2.urlopen(self.host_url+self.api_url+'?action=getjobs')
         return self.computeResult(r)
         
     
     def getJoblistDetail(self, object_id):
+        """Affiche le détail d'un objet Joblist
+    
+        :param object_id: Identifiant de l'objet à afficher
+        :type object_id: int
+        
+        :returns: xml.dom.minidom.Document
+        """
         r = urllib2.urlopen(self.host_url+self.api_url+'?action=getjoblistdetail&id='+str(object_id))
         return self.computeResult(r)
         
     
     def getJoblists(self):
+        """Affiche la liste des objets Joblist
+        
+        :returns: xml.dom.minidom.Document
+        """
         r = urllib2.urlopen(self.host_url+self.api_url+'?action=getjoblists')
         return self.computeResult(r)
         
     
     def getTaskDetail(self, object_id):
+        """Affiche le détail d'un objet Task
+    
+        :param object_id: Identifiant de l'objet à afficher
+        :type object_id: int
+        
+        :returns: xml.dom.minidom.Document
+        """
         r = urllib2.urlopen(self.host_url+self.api_url+'?action=gettaskdetail&id='+str(object_id))
         return self.computeResult(r)
         
     
     def getTasks(self):
+        """Affiche la liste des objets Task
+        
+        :returns: xml.dom.minidom.Document
+        """
         r = urllib2.urlopen(self.host_url+self.api_url+'?action=gettasks')
         return self.computeResult(r)
         
     
     def getHistoryDetail(self, object_id):
+        """Affiche le détail d'un objet History
+    
+        :param object_id: Identifiant de l'objet à afficher
+        :type object_id: int
+        
+        :returns: xml.dom.minidom.Document
+        """
         r = urllib2.urlopen(self.host_url+self.api_url+'?action=gethistorydetail&id='+str(object_id))
         return self.computeResult(r)
         
     
     def getHistories(self):
+        """Affiche la liste des objets History
+        
+        :returns: xml.dom.minidom.Document
+        """
         r = urllib2.urlopen(self.host_url+self.api_url+'?action=gethistories')
         return self.computeResult(r)
     
+
+#============ Ensemble des méthodes add ===========================
         
-    def setJob(self, name, extension, encoder, options, description):
-        params = urllib.urlencode(dict(action='setjob', name=name, extension=extension, encoder=encoder, options=options, 
+    def addJob(self, name, extension, encoder, options, description=''):
+        params = urllib.urlencode(dict(action='addjob', name=name, extension=extension, encoder=encoder, options=options, 
                                        description=description, csrfmiddlewaretoken=self.csrfparser.getCsrfToken()))
         url = self.host_url+self.api_url
         req = urllib2.Request(url, data=params, headers={'Content-Type':'application/x-www-form-urlencoded'})
-        resp = urllib2.urlopen(req)
+        result = urllib2.urlopen(req)
+        return self.computeResult(result)
         
         
-    def setJoblist(self, name, description, jobs):
+    def addJoblist(self, name, jobs, description=''):
         
-        data = [('action', 'setjoblist'), ('name', name), ('description', name), ('csrfmiddlewaretoken', self.csrfparser.getCsrfToken()),]
+        data = [('action', 'addjoblist'), ('name', name), ('description', name), ('csrfmiddlewaretoken', self.csrfparser.getCsrfToken()),]
         for job in jobs:
             data.append(('job', job))
         params = urllib.urlencode(data)
         url = self.host_url+self.api_url
         req = urllib2.Request(url, data=params, headers={'Content-Type':'application/x-www-form-urlencoded'})
-        resp = urllib2.urlopen(req)
+        result = urllib2.urlopen(req)
+        return self.computeResult(result)
         
         
-    def setTask(self, joblist, schedule, source_file, notify=False):
+    def addTask(self, joblist, schedule, source_file, notify=False):
         
-        params = {'action': 'settask', 'joblist' : joblist, 'schedule' : schedule.strftime('%Y-%m-%d %H:%M'), 'notify' : notify, 
+        params = {'action': 'addtask', 'joblist' : joblist, 'schedule' : schedule.strftime('%Y-%m-%d %H:%M'), 'notify' : notify, 
                   'source_file': open(source_file, "rb"), 'csrfmiddlewaretoken': self.csrfparser.getCsrfToken(), }
         
-        datagen, headers = poster.encode.multipart_encode(params)
+        datagen, headers = encode.multipart_encode(params)
         
         url = self.host_url+self.api_url
         request = urllib2.Request(url, datagen, headers)
         result = urllib2.urlopen(request)
+        return self.computeResult(result)
+        
+#============ Ensemble des méthodes edit ===========================
+
+
+    def editJob(self, object_id, name, extension, encoder, options, description=''):
+        params = urllib.urlencode(dict(action='addjob', id=object_id, name=name, extension=extension, encoder=encoder, options=options, 
+                                       description=description, csrfmiddlewaretoken=self.csrfparser.getCsrfToken()))
+        url = self.host_url+self.api_url
+        req = urllib2.Request(url, data=params, headers={'Content-Type':'application/x-www-form-urlencoded'})
+        result = urllib2.urlopen(req)
+        return self.computeResult(result)
         
         
+    def editJoblist(self, object_id, name, jobs, description=''):
         
-        
+        data = [('action', 'addjoblist'), ('id', object_id), ('name', name), ('description', name), ('csrfmiddlewaretoken', self.csrfparser.getCsrfToken()),]
+        for job in jobs:
+            data.append(('job', job))
+        params = urllib.urlencode(data)
+        url = self.host_url+self.api_url
+        req = urllib2.Request(url, data=params, headers={'Content-Type':'application/x-www-form-urlencoded'})
+        result = urllib2.urlopen(req)
+        return self.computeResult(result)
+
+# TODO: editTask    
+
+#============ Ensemble des méthodes delete ===========================
+
+
