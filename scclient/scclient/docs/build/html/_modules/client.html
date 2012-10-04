@@ -1,0 +1,500 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>client &mdash; scclient 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="scclient 0.1 documentation" href="../index.html" />
+    <link rel="up" title="Module code" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">scclient 0.1 documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for client</h1><div class="highlight"><pre>
+<span class="c"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;Ce module est permet de générer un client pour les applications Semiocoder et </span>
+<span class="sd">de les piloter à distance via l&#39;API qui est mise à disposition.</span>
+
+<span class="sd">Ce module embarque sa propre librairie &quot;poster&quot;, dernière en date et non modifiée</span>
+
+<span class="sd">Example usage:</span>
+<span class="sd">&gt;&gt;&gt; from scclient import client</span>
+<span class="sd">&gt;&gt;&gt; con = client.Semiocoder(&#39;http://127.0.0.1:8000&#39;, verbose=True)</span>
+<span class="sd">&gt;&gt;&gt; con.login(&#39;user&#39;, &#39;password&#39;)</span>
+<span class="sd">&gt;&gt;&gt; con.getEncoders()</span>
+<span class="sd">&lt;?xml version=&quot;1.0&quot; ?&gt;&lt;encoders&gt;</span>
+<span class="sd">        &lt;encoder&gt;</span>
+<span class="sd">                &lt;outputflag/&gt;</span>
+<span class="sd">                &lt;inputflag&gt;-i&lt;/inputflag&gt;</span>
+<span class="sd">                &lt;id&gt;1&lt;/id&gt;</span>
+<span class="sd">                &lt;name&gt;ffmpeg&lt;/name&gt;</span>
+<span class="sd">        &lt;/encoder&gt;</span>
+<span class="sd">&lt;/encoders&gt;</span>
+<span class="sd">&lt;xml.dom.minidom.Document instance at 0x028CD7D8&gt;</span>
+<span class="sd">&gt;&gt;&gt;</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">poster</span> <span class="kn">import</span> <span class="n">streaminghttp</span><span class="p">,</span> <span class="n">encode</span>
+<span class="kn">from</span> <span class="nn">HTMLParser</span> <span class="kn">import</span> <span class="n">HTMLParser</span>
+<span class="kn">import</span> <span class="nn">urllib</span><span class="o">,</span> <span class="nn">urllib2</span><span class="o">,</span> <span class="nn">cookielib</span>
+<span class="kn">from</span> <span class="nn">xml.dom.minidom</span> <span class="kn">import</span> <span class="n">parseString</span>
+
+
+<div class="viewcode-block" id="HTMLCSRFParser"><a class="viewcode-back" href="../client.html#client.HTMLCSRFParser">[docs]</a><span class="k">class</span> <span class="nc">HTMLCSRFParser</span><span class="p">(</span><span class="n">HTMLParser</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;Parseur dedie a la recuperation du jeton Cross Site Request Forgery</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">csrf</span> <span class="o">=</span> <span class="bp">None</span>
+    
+    <span class="k">def</span> <span class="nf">handle_starttag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tag</span><span class="p">,</span> <span class="n">attrs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">tag</span> <span class="o">==</span> <span class="s">&#39;input&#39;</span> <span class="ow">and</span> <span class="p">(</span><span class="s">&#39;name&#39;</span><span class="p">,</span> <span class="s">&#39;csrfmiddlewaretoken&#39;</span><span class="p">)</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">attr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;value&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">csrf</span> <span class="o">=</span> <span class="n">attr</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                    
+    <span class="k">def</span> <span class="nf">getCsrfToken</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">csrf</span>
+
+</div>
+<div class="viewcode-block" id="Semiocoder"><a class="viewcode-back" href="../client.html#client.Semiocoder">[docs]</a><span class="k">class</span> <span class="nc">Semiocoder</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;Cette classe represente un objet Semiocoder.</span>
+<span class="sd">    </span>
+<span class="sd">    Elle permet d&#39;interagir avec l&#39;API de l&#39;application cible en fournissant un client qui dispose d&#39;un certain nombre de méthodes telles que login / logout.</span>
+<span class="sd">    On retrouvra aussi toutes les méthodes necessaires à la creation/suppression modification des jobs, joblists et tasks.</span>
+<span class="sd">    </span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">host_url</span><span class="p">,</span> <span class="n">login_url</span> <span class="o">=</span> <span class="s">&#39;/accounts/login&#39;</span><span class="p">,</span> <span class="n">logout_url</span> <span class="o">=</span> <span class="s">&#39;/accounts/logout&#39;</span><span class="p">,</span> <span class="n">api_url</span> <span class="o">=</span> <span class="s">&#39;/api&#39;</span><span class="p">,</span> <span class="n">verbose</span> <span class="o">=</span> <span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Constructeur du client</span>
+<span class="sd">    </span>
+<span class="sd">        :param host_url: Url de l&#39;application Semiocoder cible</span>
+<span class="sd">        :type host_url: Str</span>
+<span class="sd">        :param login_url: Url de login de l&#39;application cible</span>
+<span class="sd">        :type object_id: Str</span>
+<span class="sd">        :param logout_url: Url de logout de l&#39;application cible</span>
+<span class="sd">        :type object_id: Str</span>
+<span class="sd">        :param api_url: Url de l&#39;API de l&#39;application cible</span>
+<span class="sd">        :type object_id: Str</span>
+<span class="sd">        :param verbose: Active le mode verbose</span>
+<span class="sd">        :type object_id: bool</span>
+<span class="sd">        </span>
+<span class="sd">        :returns: objet Semiocoder</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">host_url</span> <span class="o">=</span> <span class="n">host_url</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">login_url</span> <span class="o">=</span> <span class="n">login_url</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logout_url</span> <span class="o">=</span> <span class="n">logout_url</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">api_url</span> <span class="o">=</span> <span class="n">api_url</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">csrfparser</span> <span class="o">=</span> <span class="n">HTMLCSRFParser</span><span class="p">()</span>
+        
+        
+    <span class="k">def</span> <span class="nf">computeResult</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">result</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">dom</span> <span class="o">=</span> <span class="n">parseString</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s">&#39;compute result : An error has occurred&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="k">print</span> <span class="n">dom</span><span class="o">.</span><span class="n">toxml</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">dom</span>
+    
+    
+<span class="c">#============ Ensemble des méthodes de connexion ===========================</span>
+    
+<span class="c"># TODO: revoir les méthode de connexion</span>
+        
+    <span class="k">def</span> <span class="nf">login</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">username</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">password</span> <span class="o">=</span> <span class="bp">None</span><span class="p">):</span>
+        <span class="c"># TODO: ajouter un attribut is connected et tester</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">opener</span> <span class="o">=</span> <span class="n">streaminghttp</span><span class="o">.</span><span class="n">register_openers</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">opener</span><span class="o">.</span><span class="n">add_handler</span><span class="p">(</span><span class="n">urllib2</span><span class="o">.</span><span class="n">HTTPCookieProcessor</span><span class="p">(</span><span class="n">cookielib</span><span class="o">.</span><span class="n">CookieJar</span><span class="p">()))</span>        
+        <span class="c">#urllib2.install_opener(self.opener)</span>
+        <span class="c">#opener = poster.streaminghttp.register_openers()</span>
+
+        <span class="n">login_page</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host_url</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">login_url</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">csrfparser</span><span class="o">.</span><span class="n">feed</span><span class="p">(</span><span class="n">login_page</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">urlencode</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">username</span><span class="o">=</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="n">password</span><span class="p">,</span> <span class="nb">next</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">api_url</span><span class="p">,</span> <span class="n">csrfmiddlewaretoken</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">csrfparser</span><span class="o">.</span><span class="n">getCsrfToken</span><span class="p">()))</span>
+        <span class="n">req</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host_url</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">login_url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;Content-Type&#39;</span><span class="p">:</span><span class="s">&#39;application/x-www-form-urlencoded&#39;</span><span class="p">})</span>
+        <span class="n">resp</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">req</span><span class="p">)</span>
+        
+        
+    <span class="k">def</span> <span class="nf">logout</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host_url</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">logout_url</span><span class="p">)</span>
+
+        
+<span class="c">#============ Ensemble des méthodes get ===========================</span>
+        
+<div class="viewcode-block" id="Semiocoder.getEncoderDetail"><a class="viewcode-back" href="../client.html#client.Semiocoder.getEncoderDetail">[docs]</a>    <span class="k">def</span> <span class="nf">getEncoderDetail</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">object_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Affiche le détail d&#39;un objet Encoder</span>
+<span class="sd">    </span>
+<span class="sd">        :param object_id: Identifiant de l&#39;objet à afficher</span>
+<span class="sd">        :type object_id: int</span>
+<span class="sd">        </span>
+<span class="sd">        :returns: xml.dom.minidom.Document</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host_url</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">api_url</span><span class="o">+</span><span class="s">&#39;?action=getencoderdetail&amp;id=&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">object_id</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">computeResult</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+        
+
+    </div>
+<div class="viewcode-block" id="Semiocoder.getEncoders"><a class="viewcode-back" href="../client.html#client.Semiocoder.getEncoders">[docs]</a>    <span class="k">def</span> <span class="nf">getEncoders</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Affiche la liste des objets Encoder</span>
+<span class="sd">        </span>
+<span class="sd">        :returns: xml.dom.minidom.Document</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host_url</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">api_url</span><span class="o">+</span><span class="s">&#39;?action=getencoders&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">computeResult</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+    
+    </div>
+<div class="viewcode-block" id="Semiocoder.getExtensionDetail"><a class="viewcode-back" href="../client.html#client.Semiocoder.getExtensionDetail">[docs]</a>    <span class="k">def</span> <span class="nf">getExtensionDetail</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">object_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Affiche le détail d&#39;un objet Extension</span>
+<span class="sd">    </span>
+<span class="sd">        :param object_id: Identifiant de l&#39;objet à afficher</span>
+<span class="sd">        :type object_id: int</span>
+<span class="sd">        </span>
+<span class="sd">        :returns: xml.dom.minidom.Document</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host_url</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">api_url</span><span class="o">+</span><span class="s">&#39;?action=getextensiondetail&amp;id=&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">object_id</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">computeResult</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+    </div>
+<div class="viewcode-block" id="Semiocoder.getExtensions"><a class="viewcode-back" href="../client.html#client.Semiocoder.getExtensions">[docs]</a>    <span class="k">def</span> <span class="nf">getExtensions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Affiche la liste des objets Extension</span>
+<span class="sd">        </span>
+<span class="sd">        :returns: xml.dom.minidom.Document</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host_url</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">api_url</span><span class="o">+</span><span class="s">&#39;?action=getextensions&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">computeResult</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+    
+    </div>
+<div class="viewcode-block" id="Semiocoder.getJobDetail"><a class="viewcode-back" href="../client.html#client.Semiocoder.getJobDetail">[docs]</a>    <span class="k">def</span> <span class="nf">getJobDetail</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">object_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Affiche le détail d&#39;un objet Job</span>
+<span class="sd">    </span>
+<span class="sd">        :param object_id: Identifiant de l&#39;objet à afficher</span>
+<span class="sd">        :type object_id: int</span>
+<span class="sd">        </span>
+<span class="sd">        :returns: xml.dom.minidom.Document</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host_url</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">api_url</span><span class="o">+</span><span class="s">&#39;?action=getjobdetail&amp;id=&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">object_id</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">computeResult</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+    
+    </div>
+<div class="viewcode-block" id="Semiocoder.getJobs"><a class="viewcode-back" href="../client.html#client.Semiocoder.getJobs">[docs]</a>    <span class="k">def</span> <span class="nf">getJobs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Affiche la liste des objets Job</span>
+<span class="sd">        </span>
+<span class="sd">        :returns: xml.dom.minidom.Document</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host_url</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">api_url</span><span class="o">+</span><span class="s">&#39;?action=getjobs&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">computeResult</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+        
+    </div>
+<div class="viewcode-block" id="Semiocoder.getJoblistDetail"><a class="viewcode-back" href="../client.html#client.Semiocoder.getJoblistDetail">[docs]</a>    <span class="k">def</span> <span class="nf">getJoblistDetail</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">object_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Affiche le détail d&#39;un objet Joblist</span>
+<span class="sd">    </span>
+<span class="sd">        :param object_id: Identifiant de l&#39;objet à afficher</span>
+<span class="sd">        :type object_id: int</span>
+<span class="sd">        </span>
+<span class="sd">        :returns: xml.dom.minidom.Document</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host_url</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">api_url</span><span class="o">+</span><span class="s">&#39;?action=getjoblistdetail&amp;id=&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">object_id</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">computeResult</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+        
+    </div>
+<div class="viewcode-block" id="Semiocoder.getJoblists"><a class="viewcode-back" href="../client.html#client.Semiocoder.getJoblists">[docs]</a>    <span class="k">def</span> <span class="nf">getJoblists</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Affiche la liste des objets Joblist</span>
+<span class="sd">        </span>
+<span class="sd">        :returns: xml.dom.minidom.Document</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host_url</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">api_url</span><span class="o">+</span><span class="s">&#39;?action=getjoblists&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">computeResult</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+        
+    </div>
+<div class="viewcode-block" id="Semiocoder.getTaskDetail"><a class="viewcode-back" href="../client.html#client.Semiocoder.getTaskDetail">[docs]</a>    <span class="k">def</span> <span class="nf">getTaskDetail</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">object_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Affiche le détail d&#39;un objet Task</span>
+<span class="sd">    </span>
+<span class="sd">        :param object_id: Identifiant de l&#39;objet à afficher</span>
+<span class="sd">        :type object_id: int</span>
+<span class="sd">        </span>
+<span class="sd">        :returns: xml.dom.minidom.Document</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host_url</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">api_url</span><span class="o">+</span><span class="s">&#39;?action=gettaskdetail&amp;id=&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">object_id</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">computeResult</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+        
+    </div>
+<div class="viewcode-block" id="Semiocoder.getTasks"><a class="viewcode-back" href="../client.html#client.Semiocoder.getTasks">[docs]</a>    <span class="k">def</span> <span class="nf">getTasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Affiche la liste des objets Task</span>
+<span class="sd">        </span>
+<span class="sd">        :returns: xml.dom.minidom.Document</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host_url</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">api_url</span><span class="o">+</span><span class="s">&#39;?action=gettasks&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">computeResult</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+        
+    </div>
+<div class="viewcode-block" id="Semiocoder.getHistoryDetail"><a class="viewcode-back" href="../client.html#client.Semiocoder.getHistoryDetail">[docs]</a>    <span class="k">def</span> <span class="nf">getHistoryDetail</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">object_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Affiche le détail d&#39;un objet History</span>
+<span class="sd">    </span>
+<span class="sd">        :param object_id: Identifiant de l&#39;objet à afficher</span>
+<span class="sd">        :type object_id: int</span>
+<span class="sd">        </span>
+<span class="sd">        :returns: xml.dom.minidom.Document</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host_url</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">api_url</span><span class="o">+</span><span class="s">&#39;?action=gethistorydetail&amp;id=&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">object_id</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">computeResult</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+        
+    </div>
+<div class="viewcode-block" id="Semiocoder.getHistories"><a class="viewcode-back" href="../client.html#client.Semiocoder.getHistories">[docs]</a>    <span class="k">def</span> <span class="nf">getHistories</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Affiche la liste des objets History</span>
+<span class="sd">        </span>
+<span class="sd">        :returns: xml.dom.minidom.Document</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host_url</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">api_url</span><span class="o">+</span><span class="s">&#39;?action=gethistories&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">computeResult</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+    
+
+<span class="c">#============ Ensemble des méthodes add ===========================</span>
+        </div>
+<div class="viewcode-block" id="Semiocoder.addJob"><a class="viewcode-back" href="../client.html#client.Semiocoder.addJob">[docs]</a>    <span class="k">def</span> <span class="nf">addJob</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">extension</span><span class="p">,</span> <span class="n">encoder</span><span class="p">,</span> <span class="n">options</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Ajoute un Job</span>
+<span class="sd">    </span>
+<span class="sd">        :param name: Identifiant de l&#39;objet à afficher</span>
+<span class="sd">        :type name: str</span>
+<span class="sd">        :param extension: Object Id de l&#39;extension à utiliser</span>
+<span class="sd">        :type extension: int</span>
+<span class="sd">        :param encoder: Object Id de l&#39;encodeur à utiliser</span>
+<span class="sd">        :type encoder: int</span>
+<span class="sd">        :param options: Options du job passées à l&#39;encoder</span>
+<span class="sd">        :type options: str</span>
+<span class="sd">        :param description: Description du job</span>
+<span class="sd">        :type description: str</span>
+<span class="sd">        </span>
+<span class="sd">        :returns: xml.dom.minidom.Document</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">urlencode</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">action</span><span class="o">=</span><span class="s">&#39;addjob&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">,</span> <span class="n">encoder</span><span class="o">=</span><span class="n">encoder</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">options</span><span class="p">,</span> 
+                                       <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">,</span> <span class="n">csrfmiddlewaretoken</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">csrfparser</span><span class="o">.</span><span class="n">getCsrfToken</span><span class="p">()))</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">host_url</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">api_url</span>
+        <span class="n">req</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;Content-Type&#39;</span><span class="p">:</span><span class="s">&#39;application/x-www-form-urlencoded&#39;</span><span class="p">})</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">req</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">computeResult</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        
+        </div>
+<div class="viewcode-block" id="Semiocoder.addJoblist"><a class="viewcode-back" href="../client.html#client.Semiocoder.addJoblist">[docs]</a>    <span class="k">def</span> <span class="nf">addJoblist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">jobs</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Ajoute un Joblist</span>
+<span class="sd">    </span>
+<span class="sd">        :param name: Identifiant de l&#39;objet à afficher</span>
+<span class="sd">        :type name: str</span>
+<span class="sd">        :param extension: Liste des object Id des jobs du joblist</span>
+<span class="sd">        :type extension: list</span>
+<span class="sd">        :param description: Description du job</span>
+<span class="sd">        :type description: str</span>
+<span class="sd">        </span>
+<span class="sd">        :returns: xml.dom.minidom.Document</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">[(</span><span class="s">&#39;action&#39;</span><span class="p">,</span> <span class="s">&#39;addjoblist&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;name&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;description&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;csrfmiddlewaretoken&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">csrfparser</span><span class="o">.</span><span class="n">getCsrfToken</span><span class="p">()),]</span>
+        <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="n">jobs</span><span class="p">:</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;job&#39;</span><span class="p">,</span> <span class="n">job</span><span class="p">))</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">urlencode</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">host_url</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">api_url</span>
+        <span class="n">req</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;Content-Type&#39;</span><span class="p">:</span><span class="s">&#39;application/x-www-form-urlencoded&#39;</span><span class="p">})</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">req</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">computeResult</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        
+        </div>
+<div class="viewcode-block" id="Semiocoder.addTask"><a class="viewcode-back" href="../client.html#client.Semiocoder.addTask">[docs]</a>    <span class="k">def</span> <span class="nf">addTask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">joblist</span><span class="p">,</span> <span class="n">schedule</span><span class="p">,</span> <span class="n">source_file</span><span class="p">,</span> <span class="n">notify</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Ajoute un Task</span>
+<span class="sd">    </span>
+<span class="sd">        :param joblist: Object Id du joblist à utiliser</span>
+<span class="sd">        :type joblist: int</span>
+<span class="sd">        :param schedule: Liste des object Id des jobs du joblist</span>
+<span class="sd">        :type schedule: datetime.datetime</span>
+<span class="sd">        :param source_file: chemin vers le fichier à envoyer</span>
+<span class="sd">        :type source_file: str</span>
+<span class="sd">        :param notify: activation de la notification par mail</span>
+<span class="sd">        :type notify: bool</span>
+<span class="sd">        </span>
+<span class="sd">        :returns: xml.dom.minidom.Document</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;action&#39;</span><span class="p">:</span> <span class="s">&#39;addtask&#39;</span><span class="p">,</span> <span class="s">&#39;joblist&#39;</span> <span class="p">:</span> <span class="n">joblist</span><span class="p">,</span> <span class="s">&#39;schedule&#39;</span> <span class="p">:</span> <span class="n">schedule</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s">&#39;%Y-%m-</span><span class="si">%d</span><span class="s"> %H:%M&#39;</span><span class="p">),</span> <span class="s">&#39;notify&#39;</span> <span class="p">:</span> <span class="n">notify</span><span class="p">,</span> 
+                  <span class="s">&#39;source_file&#39;</span><span class="p">:</span> <span class="nb">open</span><span class="p">(</span><span class="n">source_file</span><span class="p">,</span> <span class="s">&quot;rb&quot;</span><span class="p">),</span> <span class="s">&#39;csrfmiddlewaretoken&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">csrfparser</span><span class="o">.</span><span class="n">getCsrfToken</span><span class="p">(),</span> <span class="p">}</span>
+        
+        <span class="n">datagen</span><span class="p">,</span> <span class="n">headers</span> <span class="o">=</span> <span class="n">encode</span><span class="o">.</span><span class="n">multipart_encode</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+        
+        <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">host_url</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">api_url</span>
+        <span class="n">request</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">datagen</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">computeResult</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        
+<span class="c">#============ Ensemble des méthodes edit ===========================</span>
+
+</div>
+<div class="viewcode-block" id="Semiocoder.editJob"><a class="viewcode-back" href="../client.html#client.Semiocoder.editJob">[docs]</a>    <span class="k">def</span> <span class="nf">editJob</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">object_id</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">extension</span><span class="p">,</span> <span class="n">encoder</span><span class="p">,</span> <span class="n">options</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Modifie un Job</span>
+<span class="sd">        </span>
+<span class="sd">        :param name: Object Id de l&#39;objet à modifier</span>
+<span class="sd">        :type name: int</span>
+<span class="sd">        :param name: Identifiant de l&#39;objet à afficher</span>
+<span class="sd">        :type name: str</span>
+<span class="sd">        :param extension: Object Id de l&#39;extension à utiliser</span>
+<span class="sd">        :type extension: int</span>
+<span class="sd">        :param encoder: Object Id de l&#39;encodeur à utiliser</span>
+<span class="sd">        :type encoder: int</span>
+<span class="sd">        :param options: Options du job passées à l&#39;encoder</span>
+<span class="sd">        :type options: str</span>
+<span class="sd">        :param description: Description du job</span>
+<span class="sd">        :type description: str</span>
+<span class="sd">        </span>
+<span class="sd">        :returns: xml.dom.minidom.Document</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">urlencode</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">action</span><span class="o">=</span><span class="s">&#39;editjob&#39;</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="n">object_id</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">,</span> <span class="n">encoder</span><span class="o">=</span><span class="n">encoder</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">options</span><span class="p">,</span> 
+                                       <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">,</span> <span class="n">csrfmiddlewaretoken</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">csrfparser</span><span class="o">.</span><span class="n">getCsrfToken</span><span class="p">()))</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">host_url</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">api_url</span>
+        <span class="n">req</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;Content-Type&#39;</span><span class="p">:</span><span class="s">&#39;application/x-www-form-urlencoded&#39;</span><span class="p">})</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">req</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">computeResult</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        
+        </div>
+<div class="viewcode-block" id="Semiocoder.editJoblist"><a class="viewcode-back" href="../client.html#client.Semiocoder.editJoblist">[docs]</a>    <span class="k">def</span> <span class="nf">editJoblist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">object_id</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">jobs</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Ajoute un Joblist</span>
+<span class="sd">        </span>
+<span class="sd">        :param name: Object Id de l&#39;objet à modifier</span>
+<span class="sd">        :type name: int</span>
+<span class="sd">        :param name: Identifiant de l&#39;objet à afficher</span>
+<span class="sd">        :type name: str</span>
+<span class="sd">        :param extension: Liste des object Id des jobs du joblist</span>
+<span class="sd">        :type extension: list</span>
+<span class="sd">        :param description: Description du job</span>
+<span class="sd">        :type description: str</span>
+<span class="sd">        </span>
+<span class="sd">        :returns: xml.dom.minidom.Document</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">[(</span><span class="s">&#39;action&#39;</span><span class="p">,</span> <span class="s">&#39;editjoblist&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;id&#39;</span><span class="p">,</span> <span class="n">object_id</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;name&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;description&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;csrfmiddlewaretoken&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">csrfparser</span><span class="o">.</span><span class="n">getCsrfToken</span><span class="p">()),]</span>
+        <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="n">jobs</span><span class="p">:</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;job&#39;</span><span class="p">,</span> <span class="n">job</span><span class="p">))</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">urlencode</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">host_url</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">api_url</span>
+        <span class="n">req</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;Content-Type&#39;</span><span class="p">:</span><span class="s">&#39;application/x-www-form-urlencoded&#39;</span><span class="p">})</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">req</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">computeResult</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+<span class="c"># TODO: editTask    </span>
+
+<span class="c">#============ Ensemble des méthodes delete ===========================</span>
+</div>
+<div class="viewcode-block" id="Semiocoder.deleteJob"><a class="viewcode-back" href="../client.html#client.Semiocoder.deleteJob">[docs]</a>    <span class="k">def</span> <span class="nf">deleteJob</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">object_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Supprime un Job</span>
+<span class="sd">        </span>
+<span class="sd">        :param name: Object Id de l&#39;objet à supprimer</span>
+<span class="sd">        :type name: int</span>
+<span class="sd">        </span>
+<span class="sd">        :returns: xml.dom.minidom.Document</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">urlencode</span><span class="p">({</span> <span class="s">&#39;action&#39;</span> <span class="p">:</span> <span class="s">&#39;deletejob&#39;</span><span class="p">,</span> <span class="s">&#39;id&#39;</span> <span class="p">:</span> <span class="n">object_id</span><span class="p">,</span> <span class="s">&#39;csrfmiddlewaretoken&#39;</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">csrfparser</span><span class="o">.</span><span class="n">getCsrfToken</span><span class="p">()</span> <span class="p">}</span> <span class="p">)</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">host_url</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">api_url</span>
+        <span class="n">req</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;Content-Type&#39;</span><span class="p">:</span><span class="s">&#39;application/x-www-form-urlencoded&#39;</span><span class="p">})</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">req</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">computeResult</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+    
+    </div>
+<div class="viewcode-block" id="Semiocoder.deleteJoblist"><a class="viewcode-back" href="../client.html#client.Semiocoder.deleteJoblist">[docs]</a>    <span class="k">def</span> <span class="nf">deleteJoblist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">object_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Supprime un Joblist</span>
+<span class="sd">        </span>
+<span class="sd">        :param name: Object Id de l&#39;objet à supprimer</span>
+<span class="sd">        :type name: int</span>
+<span class="sd">        </span>
+<span class="sd">        :returns: xml.dom.minidom.Document</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">urlencode</span><span class="p">({</span> <span class="s">&#39;action&#39;</span> <span class="p">:</span> <span class="s">&#39;deletejoblist&#39;</span><span class="p">,</span> <span class="s">&#39;id&#39;</span> <span class="p">:</span> <span class="n">object_id</span><span class="p">,</span> <span class="s">&#39;csrfmiddlewaretoken&#39;</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">csrfparser</span><span class="o">.</span><span class="n">getCsrfToken</span><span class="p">()</span> <span class="p">}</span> <span class="p">)</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">host_url</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">api_url</span>
+        <span class="n">req</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;Content-Type&#39;</span><span class="p">:</span><span class="s">&#39;application/x-www-form-urlencoded&#39;</span><span class="p">})</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">req</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">computeResult</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+    </div>
+<div class="viewcode-block" id="Semiocoder.deleteTask"><a class="viewcode-back" href="../client.html#client.Semiocoder.deleteTask">[docs]</a>    <span class="k">def</span> <span class="nf">deleteTask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">object_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Supprime un Task</span>
+<span class="sd">        </span>
+<span class="sd">        :param name: Object Id de l&#39;objet à supprimer</span>
+<span class="sd">        :type name: int</span>
+<span class="sd">        </span>
+<span class="sd">        :returns: xml.dom.minidom.Document</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">urlencode</span><span class="p">({</span> <span class="s">&#39;action&#39;</span> <span class="p">:</span> <span class="s">&#39;deletetask&#39;</span><span class="p">,</span> <span class="s">&#39;id&#39;</span> <span class="p">:</span> <span class="n">object_id</span><span class="p">,</span> <span class="s">&#39;csrfmiddlewaretoken&#39;</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">csrfparser</span><span class="o">.</span><span class="n">getCsrfToken</span><span class="p">()</span> <span class="p">}</span> <span class="p">)</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">host_url</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">api_url</span>
+        <span class="n">req</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;Content-Type&#39;</span><span class="p">:</span><span class="s">&#39;application/x-www-form-urlencoded&#39;</span><span class="p">})</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">req</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">computeResult</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</pre></div></div></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">scclient 0.1 documentation</a> &raquo;</li>
+          <li><a href="index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2012, Samuel Darko.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

@@ -5,7 +5,20 @@ de les piloter à distance via l'API qui est mise à disposition.
 Ce module embarque sa propre librairie "poster", dernière en date et non modifiée
 
 Example usage:
-
+>>> from scclient import client
+>>> con = client.Semiocoder('http://127.0.0.1:8000', verbose=True)
+>>> con.login('user', 'password')
+>>> con.getEncoders()
+<?xml version="1.0" ?><encoders>
+        <encoder>
+                <outputflag/>
+                <inputflag>-i</inputflag>
+                <id>1</id>
+                <name>ffmpeg</name>
+        </encoder>
+</encoders>
+<xml.dom.minidom.Document instance at 0x028CD7D8>
+>>>
 """
 
 from poster import streaminghttp, encode
@@ -73,6 +86,7 @@ class Semiocoder(object):
     
 #============ Ensemble des méthodes de connexion ===========================
     
+# TODO: revoir les méthode de connexion
         
     def login(self, username = None, password = None):
         # TODO: ajouter un attribut is connected et tester
@@ -223,6 +237,21 @@ class Semiocoder(object):
 #============ Ensemble des méthodes add ===========================
         
     def addJob(self, name, extension, encoder, options, description=''):
+        """Ajoute un Job
+    
+        :param name: Identifiant de l'objet à afficher
+        :type name: str
+        :param extension: Object Id de l'extension à utiliser
+        :type extension: int
+        :param encoder: Object Id de l'encodeur à utiliser
+        :type encoder: int
+        :param options: Options du job passées à l'encoder
+        :type options: str
+        :param description: Description du job
+        :type description: str
+        
+        :returns: xml.dom.minidom.Document
+        """
         params = urllib.urlencode(dict(action='addjob', name=name, extension=extension, encoder=encoder, options=options, 
                                        description=description, csrfmiddlewaretoken=self.csrfparser.getCsrfToken()))
         url = self.host_url+self.api_url
@@ -232,7 +261,17 @@ class Semiocoder(object):
         
         
     def addJoblist(self, name, jobs, description=''):
+        """Ajoute un Joblist
+    
+        :param name: Identifiant de l'objet à afficher
+        :type name: str
+        :param extension: Liste des object Id des jobs du joblist
+        :type extension: list
+        :param description: Description du job
+        :type description: str
         
+        :returns: xml.dom.minidom.Document
+        """
         data = [('action', 'addjoblist'), ('name', name), ('description', name), ('csrfmiddlewaretoken', self.csrfparser.getCsrfToken()),]
         for job in jobs:
             data.append(('job', job))
@@ -244,7 +283,19 @@ class Semiocoder(object):
         
         
     def addTask(self, joblist, schedule, source_file, notify=False):
+        """Ajoute un Task
+    
+        :param joblist: Object Id du joblist à utiliser
+        :type joblist: int
+        :param schedule: Liste des object Id des jobs du joblist
+        :type schedule: datetime.datetime
+        :param source_file: chemin vers le fichier à envoyer
+        :type source_file: str
+        :param notify: activation de la notification par mail
+        :type notify: bool
         
+        :returns: xml.dom.minidom.Document
+        """
         params = {'action': 'addtask', 'joblist' : joblist, 'schedule' : schedule.strftime('%Y-%m-%d %H:%M'), 'notify' : notify, 
                   'source_file': open(source_file, "rb"), 'csrfmiddlewaretoken': self.csrfparser.getCsrfToken(), }
         
@@ -259,6 +310,23 @@ class Semiocoder(object):
 
 
     def editJob(self, object_id, name, extension, encoder, options, description=''):
+        """Modifie un Job
+        
+        :param name: Object Id de l'objet à modifier
+        :type name: int
+        :param name: Identifiant de l'objet à afficher
+        :type name: str
+        :param extension: Object Id de l'extension à utiliser
+        :type extension: int
+        :param encoder: Object Id de l'encodeur à utiliser
+        :type encoder: int
+        :param options: Options du job passées à l'encoder
+        :type options: str
+        :param description: Description du job
+        :type description: str
+        
+        :returns: xml.dom.minidom.Document
+        """
         params = urllib.urlencode(dict(action='editjob', id=object_id, name=name, extension=extension, encoder=encoder, options=options, 
                                        description=description, csrfmiddlewaretoken=self.csrfparser.getCsrfToken()))
         url = self.host_url+self.api_url
@@ -268,7 +336,19 @@ class Semiocoder(object):
         
         
     def editJoblist(self, object_id, name, jobs, description=''):
+        """Ajoute un Joblist
         
+        :param name: Object Id de l'objet à modifier
+        :type name: int
+        :param name: Identifiant de l'objet à afficher
+        :type name: str
+        :param extension: Liste des object Id des jobs du joblist
+        :type extension: list
+        :param description: Description du job
+        :type description: str
+        
+        :returns: xml.dom.minidom.Document
+        """
         data = [('action', 'editjoblist'), ('id', object_id), ('name', name), ('description', name), ('csrfmiddlewaretoken', self.csrfparser.getCsrfToken()),]
         for job in jobs:
             data.append(('job', job))
@@ -283,6 +363,13 @@ class Semiocoder(object):
 #============ Ensemble des méthodes delete ===========================
 
     def deleteJob(self, object_id):
+        """Supprime un Job
+        
+        :param name: Object Id de l'objet à supprimer
+        :type name: int
+        
+        :returns: xml.dom.minidom.Document
+        """
         params = urllib.urlencode({ 'action' : 'deletejob', 'id' : object_id, 'csrfmiddlewaretoken' : self.csrfparser.getCsrfToken() } )
         url = self.host_url+self.api_url
         req = urllib2.Request(url, data=params, headers={'Content-Type':'application/x-www-form-urlencoded'})
@@ -291,6 +378,13 @@ class Semiocoder(object):
     
     
     def deleteJoblist(self, object_id):
+        """Supprime un Joblist
+        
+        :param name: Object Id de l'objet à supprimer
+        :type name: int
+        
+        :returns: xml.dom.minidom.Document
+        """
         params = urllib.urlencode({ 'action' : 'deletejoblist', 'id' : object_id, 'csrfmiddlewaretoken' : self.csrfparser.getCsrfToken() } )
         url = self.host_url+self.api_url
         req = urllib2.Request(url, data=params, headers={'Content-Type':'application/x-www-form-urlencoded'})
@@ -298,6 +392,13 @@ class Semiocoder(object):
         return self.computeResult(result)
     
     def deleteTask(self, object_id):
+        """Supprime un Task
+        
+        :param name: Object Id de l'objet à supprimer
+        :type name: int
+        
+        :returns: xml.dom.minidom.Document
+        """
         params = urllib.urlencode({ 'action' : 'deletetask', 'id' : object_id, 'csrfmiddlewaretoken' : self.csrfparser.getCsrfToken() } )
         url = self.host_url+self.api_url
         req = urllib2.Request(url, data=params, headers={'Content-Type':'application/x-www-form-urlencoded'})
