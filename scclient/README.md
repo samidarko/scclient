@@ -1,6 +1,6 @@
 # scclient - SemioCoder Client
 
-scclient is a very simple lightweight client for
+scclient is a very simple lightweight client for Semiocoder
 
 ## Installing
 

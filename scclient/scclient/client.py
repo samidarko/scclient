@@ -272,7 +272,7 @@ class Semiocoder(object):
         
         :returns: xml.dom.minidom.Document
         """
-        data = [('action', 'addjoblist'), ('name', name), ('description', name), ('csrfmiddlewaretoken', self.csrfparser.getCsrfToken()),]
+        data = [('action', 'addjoblist'), ('name', name), ('description', description), ('csrfmiddlewaretoken', self.csrfparser.getCsrfToken()),]
         for job in jobs:
             data.append(('job', job))
         params = urllib.urlencode(data)
@@ -349,7 +349,7 @@ class Semiocoder(object):
         
         :returns: xml.dom.minidom.Document
         """
-        data = [('action', 'editjoblist'), ('id', object_id), ('name', name), ('description', name), ('csrfmiddlewaretoken', self.csrfparser.getCsrfToken()),]
+        data = [('action', 'editjoblist'), ('id', object_id), ('name', name), ('description', description), ('csrfmiddlewaretoken', self.csrfparser.getCsrfToken()),]
         for job in jobs:
             data.append(('job', job))
         params = urllib.urlencode(data)
