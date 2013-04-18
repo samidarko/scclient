@@ -20,12 +20,13 @@ Example usage:
 <xml.dom.minidom.Document instance at 0x028CD7D8>
 >>>
 """
-
-from poster import streaminghttp, encode
+import requests
 from HTMLParser import HTMLParser
-import urllib, urllib2, cookielib
 from xml.dom.minidom import parseString
-
+from datetime import datetime
+# TODO: joblist --> ajouter la definition des jobs en xml ? etc
+# TODO: ajouter form.error dans le xml
+# TODO: clarifier les messages erreur de l'api
 
 class HTMLCSRFParser(HTMLParser):
     '''Parseur dedie a la recuperation du jeton Cross Site Request Forgery
@@ -50,7 +51,7 @@ class Semiocoder(object):
     
     '''
 
-    def __init__(self, host_url, login_url = '/accounts/login', logout_url = '/accounts/logout', api_url = '/api', verbose = False):
+    def __init__(self, host_url, login_url = '/login', logout_url = '/logout', api_url = '/api', verbose = False):
         """Constructeur du client
     
         :param host_url: Url de l'application Semiocoder cible
@@ -65,20 +66,22 @@ class Semiocoder(object):
         :type object_id: bool
         
         :returns: objet Semiocoder
-    """
+        """
         self.host_url = host_url
         self.login_url = login_url
         self.logout_url = logout_url
         self.api_url = api_url
         self.verbose = verbose
         self.csrfparser = HTMLCSRFParser()
+        self.session = requests.Session()
         
         
     def computeResult(self, result):
+        
         try:
-            dom = parseString(result.read())
+            dom = parseString(result)
         except:
-            return 'compute result : An error has occurred'
+            return 'XML parsing error : ' + result
         if self.verbose:
             print dom.toxml()
         return dom
@@ -90,20 +93,13 @@ class Semiocoder(object):
         
     def login(self, username = None, password = None):
         # TODO: ajouter un attribut is connected et tester
-        self.opener = streaminghttp.register_openers()
-        self.opener.add_handler(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))        
-        #urllib2.install_opener(self.opener)
-        #opener = poster.streaminghttp.register_openers()
-
-        login_page = urllib2.urlopen(self.host_url+self.login_url)
-        self.csrfparser.feed(login_page.read())
-        params = urllib.urlencode(dict(username=username, password=password, next=self.api_url, csrfmiddlewaretoken = self.csrfparser.getCsrfToken()))
-        req = urllib2.Request(self.host_url+self.login_url, data=params, headers={'Content-Type':'application/x-www-form-urlencoded'})
-        resp = urllib2.urlopen(req)
-        
+        response = self.session.get(self.host_url+self.login_url)
+        self.csrfparser.feed(response.text)
+        data = { 'username': username, 'password': password, 'csrfmiddlewaretoken': self.csrfparser.getCsrfToken(), }
+        self.session.post(self.host_url+self.login_url,data=data)
         
     def logout(self):
-        r = urllib2.urlopen(self.host_url+self.logout_url)
+        req = self.session.get(self.host_url+self.logout_url)
 
         
 #============ Ensemble des méthodes get ===========================
@@ -116,8 +112,9 @@ class Semiocoder(object):
         
         :returns: xml.dom.minidom.Document
         """
-        r = urllib2.urlopen(self.host_url+self.api_url+'?action=getencoderdetail&id='+str(object_id))
-        return self.computeResult(r)
+        params = { 'action' : 'getencoderdetail', 'id' : str(object_id) }
+        response = self.session.get(self.host_url+self.api_url, params=params)
+        return self.computeResult(response.text)
         
 
     
@@ -126,8 +123,8 @@ class Semiocoder(object):
         
         :returns: xml.dom.minidom.Document
         """
-        r = urllib2.urlopen(self.host_url+self.api_url+'?action=getencoders')
-        return self.computeResult(r)
+        response = self.session.get(self.host_url+self.api_url, params={ 'action' : 'getencoders', })
+        return self.computeResult(response.text)
     
     
     def getExtensionDetail(self, object_id):
@@ -138,17 +135,19 @@ class Semiocoder(object):
         
         :returns: xml.dom.minidom.Document
         """
-        r = urllib2.urlopen(self.host_url+self.api_url+'?action=getextensiondetail&id='+str(object_id))
-        return self.computeResult(r)
+        params = { 'action' : 'getextensiondetail', 'id' : str(object_id) }
+        response = self.session.get(self.host_url+self.api_url, params=params)
+        return self.computeResult(response.text)
+    
     
     def getExtensions(self):
         """Affiche la liste des objets Extension
         
         :returns: xml.dom.minidom.Document
         """
-        r = urllib2.urlopen(self.host_url+self.api_url+'?action=getextensions')
-        return self.computeResult(r)
-    
+        response = self.session.get(self.host_url+self.api_url, params={ 'action' : 'getextensions', })
+        return self.computeResult(response.text)
+
     
     def getJobDetail(self, object_id):
         """Affiche le détail d'un objet Job
@@ -158,8 +157,9 @@ class Semiocoder(object):
         
         :returns: xml.dom.minidom.Document
         """
-        r = urllib2.urlopen(self.host_url+self.api_url+'?action=getjobdetail&id='+str(object_id))
-        return self.computeResult(r)
+        params = { 'action' : 'getjobdetail', 'id' : str(object_id) }
+        response = self.session.get(self.host_url+self.api_url, params=params)
+        return self.computeResult(response.text)
     
     
     def getJobs(self):
@@ -167,8 +167,8 @@ class Semiocoder(object):
         
         :returns: xml.dom.minidom.Document
         """
-        r = urllib2.urlopen(self.host_url+self.api_url+'?action=getjobs')
-        return self.computeResult(r)
+        response = self.session.get(self.host_url+self.api_url, params={ 'action' : 'getjobs', })
+        return self.computeResult(response.text)
         
     
     def getJoblistDetail(self, object_id):
@@ -179,8 +179,9 @@ class Semiocoder(object):
         
         :returns: xml.dom.minidom.Document
         """
-        r = urllib2.urlopen(self.host_url+self.api_url+'?action=getjoblistdetail&id='+str(object_id))
-        return self.computeResult(r)
+        params = { 'action' : 'getjoblistdetail', 'id' : str(object_id) }
+        response = self.session.get(self.host_url+self.api_url, params=params)
+        return self.computeResult(response.text)
         
     
     def getJoblists(self):
@@ -188,8 +189,9 @@ class Semiocoder(object):
         
         :returns: xml.dom.minidom.Document
         """
-        r = urllib2.urlopen(self.host_url+self.api_url+'?action=getjoblists')
-        return self.computeResult(r)
+        response = self.session.get(self.host_url+self.api_url, params={ 'action' : 'getjoblists', })
+        return self.computeResult(response.text)
+        
         
     
     def getTaskDetail(self, object_id):
@@ -200,8 +202,9 @@ class Semiocoder(object):
         
         :returns: xml.dom.minidom.Document
         """
-        r = urllib2.urlopen(self.host_url+self.api_url+'?action=gettaskdetail&id='+str(object_id))
-        return self.computeResult(r)
+        params = { 'action' : 'gettaskdetail', 'id' : str(object_id) }
+        response = self.session.get(self.host_url+self.api_url, params=params)
+        return self.computeResult(response.text)
         
     
     def getTasks(self):
@@ -209,8 +212,8 @@ class Semiocoder(object):
         
         :returns: xml.dom.minidom.Document
         """
-        r = urllib2.urlopen(self.host_url+self.api_url+'?action=gettasks')
-        return self.computeResult(r)
+        response = self.session.get(self.host_url+self.api_url, params={ 'action' : 'gettasks', })
+        return self.computeResult(response.text)
         
     
     def getHistoryDetail(self, object_id):
@@ -221,8 +224,9 @@ class Semiocoder(object):
         
         :returns: xml.dom.minidom.Document
         """
-        r = urllib2.urlopen(self.host_url+self.api_url+'?action=gethistorydetail&id='+str(object_id))
-        return self.computeResult(r)
+        params = { 'action' : 'gethistorydetail', 'id' : str(object_id) }
+        response = self.session.get(self.host_url+self.api_url, params=params)
+        return self.computeResult(response.text)
         
     
     def getHistories(self):
@@ -230,13 +234,14 @@ class Semiocoder(object):
         
         :returns: xml.dom.minidom.Document
         """
-        r = urllib2.urlopen(self.host_url+self.api_url+'?action=gethistories')
-        return self.computeResult(r)
+        response = self.session.get(self.host_url+self.api_url, params={ 'action' : 'gethistories', })
+        return self.computeResult(response.text)
+        
     
 
 #============ Ensemble des méthodes add ===========================
         
-    def addJob(self, name, extension, encoder, options, description=''):
+    def setJob(self, name, extension, encoder, options, description=''):
         """Ajoute un Job
     
         :param name: Identifiant de l'objet à afficher
@@ -252,15 +257,13 @@ class Semiocoder(object):
         
         :returns: xml.dom.minidom.Document
         """
-        params = urllib.urlencode(dict(action='addjob', name=name, extension=extension, encoder=encoder, options=options, 
-                                       description=description, csrfmiddlewaretoken=self.csrfparser.getCsrfToken()))
-        url = self.host_url+self.api_url
-        req = urllib2.Request(url, data=params, headers={'Content-Type':'application/x-www-form-urlencoded'})
-        result = urllib2.urlopen(req)
-        return self.computeResult(result)
+        data = { 'action' : 'setjob', 'name' : name, 'extension' : extension, 'encoder' : encoder, 'options' : options, 
+                  'description' : description, 'csrfmiddlewaretoken' : self.csrfparser.getCsrfToken() }
+        response = self.session.post(self.host_url+self.api_url, data=data)
+        return self.computeResult(response.text)
         
         
-    def addJoblist(self, name, jobs, description=''):
+    def setJoblist(self, name, jobs, description=''):
         """Ajoute un Joblist
     
         :param name: Identifiant de l'objet à afficher
@@ -271,18 +274,16 @@ class Semiocoder(object):
         :type description: str
         
         :returns: xml.dom.minidom.Document
-        """
-        data = [('action', 'addjoblist'), ('name', name), ('description', description), ('csrfmiddlewaretoken', self.csrfparser.getCsrfToken()),]
-        for job in jobs:
-            data.append(('job', job))
-        params = urllib.urlencode(data)
-        url = self.host_url+self.api_url
-        req = urllib2.Request(url, data=params, headers={'Content-Type':'application/x-www-form-urlencoded'})
-        result = urllib2.urlopen(req)
-        return self.computeResult(result)
+        """    
+        data = { 'action' : 'setjoblist', 'name' : name, 'description' : description, 
+                'job' : jobs, 'csrfmiddlewaretoken' : self.csrfparser.getCsrfToken() }
+                  
+        response = self.session.post(self.host_url+self.api_url, data=data)
+        return self.computeResult(response.text)
+    
         
         
-    def addTask(self, joblist, schedule, source_file, notify=False):
+    def setTask(self, joblist, schedule, source_file, notify=False):
         """Ajoute un Task
     
         :param joblist: Object Id du joblist à utiliser
@@ -296,23 +297,20 @@ class Semiocoder(object):
         
         :returns: xml.dom.minidom.Document
         """
-        params = {'action': 'addtask', 'joblist' : joblist, 'schedule' : schedule.strftime('%Y-%m-%d %H:%M'), 'notify' : notify, 
-                  'source_file': open(source_file, "rb"), 'csrfmiddlewaretoken': self.csrfparser.getCsrfToken(), }
+        data = {'action': 'settask', 'joblist' : joblist, 'schedule' : datetime.strptime(schedule,'%Y-%m-%d %H:%M'), 
+                'notify' : notify, 'csrfmiddlewaretoken': self.csrfparser.getCsrfToken(), }
         
-        datagen, headers = encode.multipart_encode(params)
-        
-        url = self.host_url+self.api_url
-        request = urllib2.Request(url, datagen, headers)
-        result = urllib2.urlopen(request)
-        return self.computeResult(result)
-        
+        files = { 'source_file': open(source_file, "rb") }
+        response = self.session.post(self.host_url+self.api_url, data=data, files=files)
+        return self.computeResult(response.text)
+#        
 #============ Ensemble des méthodes edit ===========================
 
 
     def editJob(self, object_id, name, extension, encoder, options, description=''):
         """Modifie un Job
         
-        :param name: Object Id de l'objet à modifier
+        :param object_id: Object Id de l'objet à modifier
         :type name: int
         :param name: Identifiant de l'objet à afficher
         :type name: str
@@ -326,19 +324,17 @@ class Semiocoder(object):
         :type description: str
         
         :returns: xml.dom.minidom.Document
-        """
-        params = urllib.urlencode(dict(action='editjob', id=object_id, name=name, extension=extension, encoder=encoder, options=options, 
-                                       description=description, csrfmiddlewaretoken=self.csrfparser.getCsrfToken()))
-        url = self.host_url+self.api_url
-        req = urllib2.Request(url, data=params, headers={'Content-Type':'application/x-www-form-urlencoded'})
-        result = urllib2.urlopen(req)
-        return self.computeResult(result)
+        """    
+        data = { 'action' : 'editjob', 'id' : object_id, 'name' : name, 'extension' : extension, 'encoder' : encoder, 'options' : options, 
+                  'description' : description, 'csrfmiddlewaretoken' : self.csrfparser.getCsrfToken() }
+        response = self.session.post(self.host_url+self.api_url, data=data)
+        return self.computeResult(response.text)
         
         
     def editJoblist(self, object_id, name, jobs, description=''):
         """Ajoute un Joblist
         
-        :param name: Object Id de l'objet à modifier
+        :param object_id: Object Id de l'objet à modifier
         :type name: int
         :param name: Identifiant de l'objet à afficher
         :type name: str
@@ -349,16 +345,36 @@ class Semiocoder(object):
         
         :returns: xml.dom.minidom.Document
         """
-        data = [('action', 'editjoblist'), ('id', object_id), ('name', name), ('description', description), ('csrfmiddlewaretoken', self.csrfparser.getCsrfToken()),]
-        for job in jobs:
-            data.append(('job', job))
-        params = urllib.urlencode(data)
-        url = self.host_url+self.api_url
-        req = urllib2.Request(url, data=params, headers={'Content-Type':'application/x-www-form-urlencoded'})
-        result = urllib2.urlopen(req)
-        return self.computeResult(result)
+        data = { 'action' : 'editjoblist', 'id' : object_id, 'name' : name, 'description' : description,
+                'job' : jobs,  'csrfmiddlewaretoken' : self.csrfparser.getCsrfToken() }
+        response = self.session.post(self.host_url+self.api_url, data=data)
+        return self.computeResult(response.text)
 
-# TODO: editTask    
+
+    def editTask(self, object_id, joblist, schedule, source_file, notify=False):
+        """Ajoute un Task
+    
+        :param object_id: Object Id de l'objet à modifier
+        :type name: int
+        :param joblist: Object Id du joblist à utiliser
+        :type joblist: int
+        :param schedule: Liste des object Id des jobs du joblist
+        :type schedule: datetime.datetime
+        :param source_file: chemin vers le fichier à envoyer
+        :type source_file: str
+        :param notify: activation de la notification par mail
+        :type notify: bool
+        
+        :returns: xml.dom.minidom.Document
+        """
+        # TODO: probleme lorsqu'on ajoute de nouveau une video == 2 videos
+        data = {'action': 'edittask', 'id' : object_id, 'joblist' : joblist, 'schedule' : datetime.strptime(schedule,'%Y-%m-%d %H:%M'), 
+                'notify' : notify, 'csrfmiddlewaretoken': self.csrfparser.getCsrfToken(), }
+        
+        files = { 'source_file': open(source_file, "rb") }
+        response = self.session.post(self.host_url+self.api_url, data=data, files=files)
+        return self.computeResult(response.text)
+    
 
 #============ Ensemble des méthodes delete ===========================
 
@@ -370,11 +386,9 @@ class Semiocoder(object):
         
         :returns: xml.dom.minidom.Document
         """
-        params = urllib.urlencode({ 'action' : 'deletejob', 'id' : object_id, 'csrfmiddlewaretoken' : self.csrfparser.getCsrfToken() } )
-        url = self.host_url+self.api_url
-        req = urllib2.Request(url, data=params, headers={'Content-Type':'application/x-www-form-urlencoded'})
-        result = urllib2.urlopen(req)
-        return self.computeResult(result)
+        data = { 'action' : 'deletejob', 'id' : object_id, 'csrfmiddlewaretoken' : self.csrfparser.getCsrfToken() } 
+        response = self.session.post(self.host_url+self.api_url, data=data)
+        return self.computeResult(response.text)
     
     
     def deleteJoblist(self, object_id):
@@ -385,11 +399,10 @@ class Semiocoder(object):
         
         :returns: xml.dom.minidom.Document
         """
-        params = urllib.urlencode({ 'action' : 'deletejoblist', 'id' : object_id, 'csrfmiddlewaretoken' : self.csrfparser.getCsrfToken() } )
-        url = self.host_url+self.api_url
-        req = urllib2.Request(url, data=params, headers={'Content-Type':'application/x-www-form-urlencoded'})
-        result = urllib2.urlopen(req)
-        return self.computeResult(result)
+        data = { 'action' : 'deletejoblist', 'id' : object_id, 'csrfmiddlewaretoken' : self.csrfparser.getCsrfToken() } 
+        response = self.session.post(self.host_url+self.api_url, data=data)
+        return self.computeResult(response.text)
+    
     
     def deleteTask(self, object_id):
         """Supprime un Task
@@ -399,9 +412,7 @@ class Semiocoder(object):
         
         :returns: xml.dom.minidom.Document
         """
-        params = urllib.urlencode({ 'action' : 'deletetask', 'id' : object_id, 'csrfmiddlewaretoken' : self.csrfparser.getCsrfToken() } )
-        url = self.host_url+self.api_url
-        req = urllib2.Request(url, data=params, headers={'Content-Type':'application/x-www-form-urlencoded'})
-        result = urllib2.urlopen(req)
-        return self.computeResult(result)
+        data = { 'action' : 'deletetask', 'id' : object_id, 'csrfmiddlewaretoken' : self.csrfparser.getCsrfToken() } 
+        response = self.session.post(self.host_url+self.api_url, data=data)
+        return self.computeResult(response.text)
 
