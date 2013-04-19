@@ -21,7 +21,7 @@ class Test(unittest.TestCase):
     
     
     def setUp(self):
-        self.con = Semiocoder('http://192.168.1.30:8000', verbose=True)
+        self.con = Semiocoder('http://127.0.0.1:8000', verbose=True)
         self.con.login(self.usr, self.pwd)
 
 
