@@ -9,21 +9,24 @@ Example usage:
 >>> con = client.Semiocoder('http://127.0.0.1:8000', verbose=True)
 >>> con.login('user', 'password')
 >>> con.getEncoders()
-<?xml version="1.0" ?><encoders>
+<?xml version="1.0" ?>
+    <encoders>
         <encoder>
-                <outputflag/>
-                <inputflag>-i</inputflag>
-                <id>1</id>
-                <name>ffmpeg</name>
+            <outputflag/>
+            <inputflag>-i</inputflag>
+            <id>1</id>
+            <name>ffmpeg</name>
         </encoder>
-</encoders>
+    </encoders>
 <xml.dom.minidom.Document instance at 0x028CD7D8>
 >>>
 """
-import requests
+import os, requests
 from HTMLParser import HTMLParser
 from xml.dom.minidom import parseString
+from xml.etree import cElementTree
 from datetime import datetime
+
 # TODO: joblist --> ajouter la definition des jobs en xml ? etc
 # TODO: ajouter form.error dans le xml
 # TODO: clarifier les messages erreur de l'api
@@ -79,8 +82,9 @@ class Semiocoder(object):
     def computeResult(self, result):
         
         try:
-            dom = parseString(result)
+            dom = parseString(result.encode('ascii',errors='ignore'))
         except:
+            import pdb; pdb.set_trace()
             return 'XML parsing error : ' + result
         if self.verbose:
             print dom.toxml()
@@ -237,7 +241,43 @@ class Semiocoder(object):
         response = self.session.get(self.host_url+self.api_url, params={ 'action' : 'gethistories', })
         return self.computeResult(response.text)
         
+        
+    def getFiles(self, object_id, target):
+        """Télécharge le ou les fichiers associés à l'objet History
+        
+        :param object_id: Identifiant de l'objet History
+        :type object_id: int
+        :param target: Chemin du répertoire de destination des fichiers
+        :type target: str
+        
+        :returns: xml.dom.minidom.Document
+        """
+        params = { 'action' : 'gethistorydetail', 'id' : str(object_id) }
+        response = self.session.get(self.host_url+self.api_url, params=params)
+        doc = self.computeResult(response.text)
+        edoc = cElementTree.fromstring(doc.toxml())
+        for path in edoc.findall('.//path'):
+            filename = os.path.basename(path.text)
+            with open(os.path.join(target, filename), 'wb') as f:
+                data = self.session.get(self.host_url+path.text)
+                for chunk in data.iter_content(chunk_size = 512 * 1024): # Reads 512KB at a time into memory
+                    if chunk: # filter out keep-alive new chunks
+                        f.write(chunk)
+                f.close()
     
+    
+    def deleteFiles(self, object_id):
+        """Supprime le ou les fichiers associés à l'objet History
+        
+        :param object_id: Identifiant de l'objet History
+        :type object_id: int
+        
+        :returns: xml.dom.minidom.Document
+        """
+        data = { 'action' : 'deletefiles', 'id' : object_id, 'csrfmiddlewaretoken' : self.csrfparser.getCsrfToken(), }
+        response = self.session.post(self.host_url+self.api_url, data=data)
+        return self.computeResult(response.text)
+        
 
 #============ Ensemble des méthodes add ===========================
         

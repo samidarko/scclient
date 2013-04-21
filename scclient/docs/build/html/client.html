@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -15,7 +13,7 @@
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '',
+        URL_ROOT:    './',
         VERSION:     '0.1',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
@@ -61,19 +59,23 @@ de les piloter à distance via l&#8217;API qui est mise à disposition.</p>
 &gt;&gt;&gt; con = client.Semiocoder(&#8216;<a class="reference external" href="http://127.0.0.1:8000">http://127.0.0.1:8000</a>&#8216;, verbose=True)
 &gt;&gt;&gt; con.login(&#8216;user&#8217;, &#8216;password&#8217;)
 &gt;&gt;&gt; con.getEncoders()
-&lt;?xml version=&#8221;1.0&#8221; ?&gt;&lt;encoders&gt;</p>
+&lt;?xml version=&#8221;1.0&#8221; ?&gt;</p>
 <blockquote>
 <div><dl class="docutils">
+<dt>&lt;encoders&gt;</dt>
+<dd><dl class="first docutils">
 <dt>&lt;encoder&gt;</dt>
 <dd>&lt;outputflag/&gt;
 &lt;inputflag&gt;-i&lt;/inputflag&gt;
 &lt;id&gt;1&lt;/id&gt;
 &lt;name&gt;ffmpeg&lt;/name&gt;</dd>
 </dl>
-<p>&lt;/encoder&gt;</p>
+<p class="last">&lt;/encoder&gt;</p>
+</dd>
+</dl>
+<p>&lt;/encoders&gt;</p>
 </div></blockquote>
-<p>&lt;/encoders&gt;
-&lt;xml.dom.minidom.Document instance at 0x028CD7D8&gt;
+<p>&lt;xml.dom.minidom.Document instance at 0x028CD7D8&gt;
 &gt;&gt;&gt;</p>
 <dl class="class">
 <dt id="client.HTMLCSRFParser">
@@ -83,74 +85,21 @@ de les piloter à distance via l&#8217;API qui est mise à disposition.</p>
 
 <dl class="class">
 <dt id="client.Semiocoder">
-<em class="property">class </em><tt class="descclassname">client.</tt><tt class="descname">Semiocoder</tt><big>(</big><em>host_url</em>, <em>login_url='/accounts/login'</em>, <em>logout_url='/accounts/logout'</em>, <em>api_url='/api'</em>, <em>verbose=False</em><big>)</big><a class="reference internal" href="_modules/client.html#Semiocoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#client.Semiocoder" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">client.</tt><tt class="descname">Semiocoder</tt><big>(</big><em>host_url</em>, <em>login_url='/login'</em>, <em>logout_url='/logout'</em>, <em>api_url='/api'</em>, <em>verbose=False</em><big>)</big><a class="reference internal" href="_modules/client.html#Semiocoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#client.Semiocoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Cette classe represente un objet Semiocoder.</p>
 <p>Elle permet d&#8217;interagir avec l&#8217;API de l&#8217;application cible en fournissant un client qui dispose d&#8217;un certain nombre de méthodes telles que login / logout.
 On retrouvra aussi toutes les méthodes necessaires à la creation/suppression modification des jobs, joblists et tasks.</p>
 <dl class="method">
-<dt id="client.Semiocoder.addJob">
-<tt class="descname">addJob</tt><big>(</big><em>name</em>, <em>extension</em>, <em>encoder</em>, <em>options</em>, <em>description=''</em><big>)</big><a class="reference internal" href="_modules/client.html#Semiocoder.addJob"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#client.Semiocoder.addJob" title="Permalink to this definition">¶</a></dt>
-<dd><p>Ajoute un Job</p>
+<dt id="client.Semiocoder.deleteFiles">
+<tt class="descname">deleteFiles</tt><big>(</big><em>object_id</em><big>)</big><a class="reference internal" href="_modules/client.html#Semiocoder.deleteFiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#client.Semiocoder.deleteFiles" title="Permalink to this definition">¶</a></dt>
+<dd><p>Supprime le ou les fichiers associés à l&#8217;objet History</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>name</strong> (<em>str</em>) &#8211; Identifiant de l&#8217;objet à afficher</li>
-<li><strong>extension</strong> (<em>int</em>) &#8211; Object Id de l&#8217;extension à utiliser</li>
-<li><strong>encoder</strong> (<em>int</em>) &#8211; Object Id de l&#8217;encodeur à utiliser</li>
-<li><strong>options</strong> (<em>str</em>) &#8211; Options du job passées à l&#8217;encoder</li>
-<li><strong>description</strong> (<em>str</em>) &#8211; Description du job</li>
-</ul>
-</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>object_id</strong> (<em>int</em>) &#8211; Identifiant de l&#8217;objet History</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">xml.dom.minidom.Document</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="client.Semiocoder.addJoblist">
-<tt class="descname">addJoblist</tt><big>(</big><em>name</em>, <em>jobs</em>, <em>description=''</em><big>)</big><a class="reference internal" href="_modules/client.html#Semiocoder.addJoblist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#client.Semiocoder.addJoblist" title="Permalink to this definition">¶</a></dt>
-<dd><p>Ajoute un Joblist</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>name</strong> (<em>str</em>) &#8211; Identifiant de l&#8217;objet à afficher</li>
-<li><strong>extension</strong> (<em>list</em>) &#8211; Liste des object Id des jobs du joblist</li>
-<li><strong>description</strong> (<em>str</em>) &#8211; Description du job</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">xml.dom.minidom.Document</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="client.Semiocoder.addTask">
-<tt class="descname">addTask</tt><big>(</big><em>joblist</em>, <em>schedule</em>, <em>source_file</em>, <em>notify=False</em><big>)</big><a class="reference internal" href="_modules/client.html#Semiocoder.addTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#client.Semiocoder.addTask" title="Permalink to this definition">¶</a></dt>
-<dd><p>Ajoute un Task</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>joblist</strong> (<em>int</em>) &#8211; Object Id du joblist à utiliser</li>
-<li><strong>schedule</strong> (<em>datetime.datetime</em>) &#8211; Liste des object Id des jobs du joblist</li>
-<li><strong>source_file</strong> (<em>str</em>) &#8211; chemin vers le fichier à envoyer</li>
-<li><strong>notify</strong> (<em>bool</em>) &#8211; activation de la notification par mail</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">xml.dom.minidom.Document</p>
-</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">xml.dom.minidom.Document</td>
 </tr>
 </tbody>
 </table>
@@ -213,8 +162,8 @@ On retrouvra aussi toutes les méthodes necessaires à la creation/suppression m
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>name</strong> (<em>str</em>) &#8211; Object Id de l&#8217;objet à modifier</li>
-<li><strong>name</strong> &#8211; Identifiant de l&#8217;objet à afficher</li>
+<li><strong>object_id</strong> &#8211; Object Id de l&#8217;objet à modifier</li>
+<li><strong>name</strong> (<em>str</em>) &#8211; Identifiant de l&#8217;objet à afficher</li>
 <li><strong>extension</strong> (<em>int</em>) &#8211; Object Id de l&#8217;extension à utiliser</li>
 <li><strong>encoder</strong> (<em>int</em>) &#8211; Object Id de l&#8217;encodeur à utiliser</li>
 <li><strong>options</strong> (<em>str</em>) &#8211; Options du job passées à l&#8217;encoder</li>
@@ -238,10 +187,34 @@ On retrouvra aussi toutes les méthodes necessaires à la creation/suppression m
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>name</strong> (<em>str</em>) &#8211; Object Id de l&#8217;objet à modifier</li>
-<li><strong>name</strong> &#8211; Identifiant de l&#8217;objet à afficher</li>
+<li><strong>object_id</strong> &#8211; Object Id de l&#8217;objet à modifier</li>
+<li><strong>name</strong> (<em>str</em>) &#8211; Identifiant de l&#8217;objet à afficher</li>
 <li><strong>extension</strong> (<em>list</em>) &#8211; Liste des object Id des jobs du joblist</li>
 <li><strong>description</strong> (<em>str</em>) &#8211; Description du job</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">xml.dom.minidom.Document</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="client.Semiocoder.editTask">
+<tt class="descname">editTask</tt><big>(</big><em>object_id</em>, <em>joblist</em>, <em>schedule</em>, <em>source_file</em>, <em>notify=False</em><big>)</big><a class="reference internal" href="_modules/client.html#Semiocoder.editTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#client.Semiocoder.editTask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ajoute un Task</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>object_id</strong> &#8211; Object Id de l&#8217;objet à modifier</li>
+<li><strong>joblist</strong> (<em>int</em>) &#8211; Object Id du joblist à utiliser</li>
+<li><strong>schedule</strong> (<em>datetime.datetime</em>) &#8211; Liste des object Id des jobs du joblist</li>
+<li><strong>source_file</strong> (<em>str</em>) &#8211; chemin vers le fichier à envoyer</li>
+<li><strong>notify</strong> (<em>bool</em>) &#8211; activation de la notification par mail</li>
 </ul>
 </td>
 </tr>
@@ -307,6 +280,27 @@ On retrouvra aussi toutes les méthodes necessaires à la creation/suppression m
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">xml.dom.minidom.Document</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="client.Semiocoder.getFiles">
+<tt class="descname">getFiles</tt><big>(</big><em>object_id</em>, <em>target</em><big>)</big><a class="reference internal" href="_modules/client.html#Semiocoder.getFiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#client.Semiocoder.getFiles" title="Permalink to this definition">¶</a></dt>
+<dd><p>Télécharge le ou les fichiers associés à l&#8217;objet History</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>object_id</strong> (<em>int</em>) &#8211; Identifiant de l&#8217;objet History</li>
+<li><strong>target</strong> (<em>str</em>) &#8211; Chemin du répertoire de destination des fichiers</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">xml.dom.minidom.Document</p>
+</td>
 </tr>
 </tbody>
 </table>
@@ -432,6 +426,75 @@ On retrouvra aussi toutes les méthodes necessaires à la creation/suppression m
 </table>
 </dd></dl>
 
+<dl class="method">
+<dt id="client.Semiocoder.setJob">
+<tt class="descname">setJob</tt><big>(</big><em>name</em>, <em>extension</em>, <em>encoder</em>, <em>options</em>, <em>description=''</em><big>)</big><a class="reference internal" href="_modules/client.html#Semiocoder.setJob"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#client.Semiocoder.setJob" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ajoute un Job</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>name</strong> (<em>str</em>) &#8211; Identifiant de l&#8217;objet à afficher</li>
+<li><strong>extension</strong> (<em>int</em>) &#8211; Object Id de l&#8217;extension à utiliser</li>
+<li><strong>encoder</strong> (<em>int</em>) &#8211; Object Id de l&#8217;encodeur à utiliser</li>
+<li><strong>options</strong> (<em>str</em>) &#8211; Options du job passées à l&#8217;encoder</li>
+<li><strong>description</strong> (<em>str</em>) &#8211; Description du job</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">xml.dom.minidom.Document</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="client.Semiocoder.setJoblist">
+<tt class="descname">setJoblist</tt><big>(</big><em>name</em>, <em>jobs</em>, <em>description=''</em><big>)</big><a class="reference internal" href="_modules/client.html#Semiocoder.setJoblist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#client.Semiocoder.setJoblist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ajoute un Joblist</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>name</strong> (<em>str</em>) &#8211; Identifiant de l&#8217;objet à afficher</li>
+<li><strong>extension</strong> (<em>list</em>) &#8211; Liste des object Id des jobs du joblist</li>
+<li><strong>description</strong> (<em>str</em>) &#8211; Description du job</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">xml.dom.minidom.Document</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="client.Semiocoder.setTask">
+<tt class="descname">setTask</tt><big>(</big><em>joblist</em>, <em>schedule</em>, <em>source_file</em>, <em>notify=False</em><big>)</big><a class="reference internal" href="_modules/client.html#Semiocoder.setTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#client.Semiocoder.setTask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ajoute un Task</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>joblist</strong> (<em>int</em>) &#8211; Object Id du joblist à utiliser</li>
+<li><strong>schedule</strong> (<em>datetime.datetime</em>) &#8211; Liste des object Id des jobs du joblist</li>
+<li><strong>source_file</strong> (<em>str</em>) &#8211; chemin vers le fichier à envoyer</li>
+<li><strong>notify</strong> (<em>bool</em>) &#8211; activation de la notification par mail</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">xml.dom.minidom.Document</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </dd></dl>
 
 </div>
@@ -484,7 +547,7 @@ On retrouvra aussi toutes les méthodes necessaires à la creation/suppression m
     </div>
     <div class="footer">
         &copy; Copyright 2012, Samuel Darko.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
     </div>
   </body>
 </html>
